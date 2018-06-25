@@ -1,0 +1,32 @@
+apply plugin: 'base' 
+//apply plugin: 'java' 
+
+configurations {
+   compile
+   runtime { extendsFrom configurations.compile } 
+} 
+dependencies {
+   compile 'com.foo:bar:1.0'
+}
+FileTree tree3 = fileTree('src/level3/java')
+FileTree tree2 = fileTree('src/level2/java').matching {
+   exclude { FileTreeElement el ->
+      return file("src/main/level3/java/$el.path").exists() 
+   } 
+}
+FileTree tree1 = fileTree('src/level1/java').matching {
+   exclude { FileTreeElement el ->
+      return file("src/main/level3/java/$el.path").exists() ||
+           file("src/main/level2/java/$el.path").exists()
+   } 
+} 
+task compileJava(type: JavaCompile) {
+   source = tree1.plus(tree2).plus(tree3)
+//   sourceSets {
+//	tree1.plus(tree2).plus(tree3)
+//   }
+   classpath = configurations.runtime
+}
+//task test(type:Test) { ... } 
+assemble.dependsOn compileJava
+//check.dependsOn test
