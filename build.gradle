@@ -1,32 +1,117 @@
 apply plugin: 'base' 
-//apply plugin: 'java' 
+apply plugin: 'groovy' 
+apply plugin: 'java-base' 
 
 configurations {
    compile
    runtime { extendsFrom configurations.compile } 
 } 
 dependencies {
-   compile 'com.foo:bar:1.0'
+   //compile 'com.foo:bar:1.0'
 }
-FileTree tree3 = fileTree('src/level3/java')
-FileTree tree2 = fileTree('src/level2/java').matching {
+/*
+def tree1, tree2, tree3, uniqTree
+task findTrees {
+  println "findTrees called"
+tree3 = fileTree('src/level3/java')
+tree2 = fileTree('src/level2/java').matching {
    exclude { FileTreeElement el ->
-      return file("src/main/level3/java/$el.path").exists() 
+      return file("src/main/level3/java/$el.path").exists()
    } 
 }
-FileTree tree1 = fileTree('src/level1/java').matching {
+tree1 = fileTree('src/level1/java').matching {
    exclude { FileTreeElement el ->
       return file("src/main/level3/java/$el.path").exists() ||
            file("src/main/level2/java/$el.path").exists()
    } 
 } 
-task compileJava(type: JavaCompile) {
-   source = tree1.plus(tree2).plus(tree3)
-//   sourceSets {
-//	tree1.plus(tree2).plus(tree3)
-//   }
+}
+task printTrees {
+  println "printTrees called"
+  dependsOn findTrees
+ doLast {
+  tree3 = fileTree('src/level3/java')
+  tree2 = fileTree('src/level2/java').matching {
+   include { FileTreeElement el ->
+    return el.directory || !file("src/level3/java/${el.path}").exists()
+   }
+  }
+  tree1 = fileTree('src/level1/java').matching {
+   include { FileTreeElement el ->
+    return el.directory || (!file("src/level3/java/${el.path}").exists() && !file("src/level2/java/${el.path}").exists())
+   }
+  }
+  tree3.plus(tree2).plus(tree1).each {
+   println "$it"
+  }
+  uniqTree = tree3.plus(tree2).plus(tree1)
+  uniqTree.each {
+    println "DAB: uniq: $it"
+  }
+ }
+}
+*/
+task mycompileJava(type: JavaCompile) {
+  println "mycompileJava called"
+  // dependsOn findTrees,printTrees
+  def tree1, tree2, tree3, uniqTree
+  tree3 = fileTree('src/level3/java')
+  tree2 = fileTree('src/level2/java').matching {
+   include { FileTreeElement el ->
+    return el.directory || !file("src/level3/java/${el.path}").exists()
+   }
+  }
+  tree1 = fileTree('src/level1/java').matching {
+   include { FileTreeElement el ->
+    return el.directory || (!file("src/level3/java/${el.path}").exists() && !file("src/level2/java/${el.path}").exists())
+   }
+  }
+  tree3.plus(tree2).plus(tree1).each {
+   println "$it"
+  }
+  uniqTree = tree3.plus(tree2).plus(tree1)
+  uniqTree.each {
+    println "DAB: uniq: $it"
+  }
+   uniqTree.each {
+      "DAB: mycompileJava, uniq: $it"
+   }
+   sourceSets {
+	main {
+		java {
+			//uniqTree.each {
+			//	include "$it"
+			//}
+			//source = uniqTree
+			//include uniqTree
+			source { uniqTree.getFiles() }
+		}
+	}
+   }
+   //source tree3.plus(tree2).plus(tree1)
+   //include { tree1.plus(tree2).plus(tree3) }
+   //include tree2
+   //include tree3
    classpath = configurations.runtime
+   destinationDir = file('build')
+   //source { Set<FileTreeElement> tree1.plus(tree2).plus(tree3) }
+   //source = tree1.plus(tree2).plus(tree3)
+   //source = uniqTree
+   println("Dave was here...")
+   getSource().each {
+      println("DAVE: $it")
+   }
 }
 //task test(type:Test) { ... } 
-assemble.dependsOn compileJava
+version = "0.0.1"
+task myJar (type: Jar) {
+        manifest {
+                attributes('Implementation-Title': project.name,
+                        'Implementation-Version': project.version)
+        }
+	from sourceSets.main.output
+	include "**/*.class"
+}
+
+assemble.dependsOn mycompileJava,myJar
 //check.dependsOn test
